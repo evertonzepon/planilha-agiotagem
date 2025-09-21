@@ -66,10 +66,12 @@ document.getElementById('excelFile').addEventListener('change', function(e) {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, {type: 'array'});
-            const sheetName = 'AGIOTAGEM';
             
-            if (!workbook.Sheets[sheetName]) {
-                mostrarAlerta('Planilha não encontrada!', 'error');
+            // Alteração: Pega o nome da primeira planilha do arquivo
+            const sheetName = workbook.SheetNames[0];
+            
+            if (!sheetName) {
+                mostrarAlerta('Nenhuma planilha encontrada no arquivo!', 'error');
                 return;
             }
 
@@ -79,7 +81,7 @@ document.getElementById('excelFile').addEventListener('change', function(e) {
             processarDadosExcel(jsonData);
             mostrarAlerta('Arquivo carregado com sucesso!');
         } catch (error) {
-            mostrarAlerta('Erro ao ler o arquivo: ' + error.message, 'error');
+            mostrarAlerta('Erro ao ler o arquivo. Certifique-se de que é um arquivo .xlsx ou .xls válido.', 'error');
         }
     };
     reader.readAsArrayBuffer(file);
@@ -96,25 +98,39 @@ function processarDadosExcel(data) {
     for (let i = 0; i < data.length; i++) {
         const row = data[i];
         
+        // Ignora linhas que são apenas o título do mês
         if (row[0] && !row[1] && !row[2] && !row[3] && !row[4]) {
             mesAtualLido = row[0];
             continue;
         }
         
-        if (row[0] === 'Item' || row[0] === 'Total' || !row[0]) {
+        // Ignora a linha do cabeçalho da tabela ou linhas vazias
+        if (row[0] === 'Item' || row[0] === 'Total' || !row[0] || !row[1]) {
             continue;
         }
         
+        // Processa apenas as linhas com dados válidos
         if (mesAtualLido && row[0] && row[1]) {
-            const [parcelaAtual, totalParcelas] = row[1].split('/').map(Number);
+            const [parcelaAtualStr, totalParcelasStr] = row[1].split('/');
+            const parcelaAtual = parseInt(parcelaAtualStr);
+            const totalParcelas = parseInt(totalParcelasStr);
+            const valorTotal = parseFloat(row[2]);
+            const valorParcela = parseFloat(row[3]);
+
+            // Verifica se os valores são números válidos
+            if (isNaN(parcelaAtual) || isNaN(totalParcelas) || isNaN(valorTotal) || isNaN(valorParcela)) {
+                console.error(`Linha com dados inválidos ignorada: ${row}`);
+                continue;
+            }
+            
             const [mesString, anoString] = mesAtualLido.split(' ');
             
             allParcels.push({
                 item: row[0],
                 parcelaAtual: parcelaAtual,
                 totalParcelas: totalParcelas,
-                valorTotal: parseFloat(row[2]) || 0,
-                valorParcela: parseFloat(row[3]) || 0,
+                valorTotal: valorTotal,
+                valorParcela: valorParcela,
                 pago: row[4] === true || row[4] === 'True' || row[4] === 'TRUE',
                 data: new Date(parseInt(anoString), meses.indexOf(mesString), 1)
             });
@@ -395,7 +411,7 @@ function exportarDados() {
     });
     
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'AGIOTAGEM');
+    XLSX.utils.book_append_sheet(wb, ws, 'AGIOTAGEM PARA O JEAN');
     
     XLSX.writeFile(wb, 'agiotagem_atualizada.xlsx');
     mostrarAlerta('Arquivo Excel exportado com sucesso!');
@@ -411,5 +427,4 @@ function limparDados() {
         carregarParcelasMes(getMesNome(new Date()));
         atualizarResumo();
     }
-
 }
