@@ -66,10 +66,10 @@ document.getElementById('excelFile').addEventListener('change', function(e) {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, {type: 'array'});
-            const sheetName = 'AGIOTAGEM PARA O JEAN';
+            const sheetName = 'AGIOTAGEM';
             
             if (!workbook.Sheets[sheetName]) {
-                mostrarAlerta('Planilha "AGIOTAGEM PARA O JEAN" não encontrada!', 'error');
+                mostrarAlerta('Planilha não encontrada!', 'error');
                 return;
             }
 
@@ -395,7 +395,7 @@ function exportarDados() {
     });
     
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'AGIOTAGEM PARA O JEAN');
+    XLSX.utils.book_append_sheet(wb, ws, 'AGIOTAGEM');
     
     XLSX.writeFile(wb, 'agiotagem_atualizada.xlsx');
     mostrarAlerta('Arquivo Excel exportado com sucesso!');
@@ -411,4 +411,5 @@ function limparDados() {
         carregarParcelasMes(getMesNome(new Date()));
         atualizarResumo();
     }
+
 }
